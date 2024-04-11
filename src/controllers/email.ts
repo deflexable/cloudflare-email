@@ -1,6 +1,11 @@
 import { IContact, IEmail } from '../schema/email';
 
-type IMCPersonalization = { to: IMCContact[] };
+type IMCPersonalization = {
+	to: IMCContact[];
+	dkim_domain: string;
+	dkim_selector: string;
+	dkim_private_key: string;
+};
 type IMCContact = { email: string; name: string | undefined };
 type IMCContent = { type: string; value: string };
 
@@ -19,9 +24,9 @@ class Email {
 	 *
 	 * @param email
 	 */
-	static async send(email: IEmail) {
+	static async send(email: IEmail, env: Env) {
 		// convert email to IMCEmail (MailChannels Email)
-		const mcEmail: IMCEmail = Email.convertEmail(email);
+		const mcEmail: IMCEmail = Email.convertEmail(email, env);
 
 		// send email through MailChannels
 		const resp = await fetch(
@@ -45,12 +50,17 @@ class Email {
 	 * @param email
 	 * @protected
 	 */
-	protected static convertEmail(email: IEmail): IMCEmail {
+	protected static convertEmail(email: IEmail, env: Env): IMCEmail {
 		const personalizations: IMCPersonalization[] = [];
 
 		// Convert 'to' field
 		const toContacts: IMCContact[] = Email.convertContacts(email.to);
-		personalizations.push({ to: toContacts });
+		personalizations.push({
+			to: toContacts,
+			dkim_domain: env.dkim_domain,
+			dkim_selector: env.dkim_selector,
+			dkim_private_key: env.dkim_private_key
+		});
 
 		let replyTo: IMCContact | undefined = undefined;
 		let bccContacts: IMCContact[] | undefined = undefined;
